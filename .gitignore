@@ -1,0 +1,7 @@
+__pycache__/
+
+/esp-olfactory-serial-controller/build/
+/py-olfactory-serial-controller/build/
+/py-olfactory-serial-controller/dist/
+/py-olfactory-serial-controller/venv/
+/py-olfactory-serial-controller/main.spec
