@@ -22,6 +22,7 @@ typedef uint8_t ol_msg_command_t;
 
 #define OL_COMMAND_ALTER (ol_msg_command_t)('F')
 #define OL_COMMAND_CSV_START (ol_msg_command_t)('G')
+#define OL_COMMAND_CSV_PAUSE (ol_msg_command_t)('J')
 #define OL_COMMAND_CSV_STOP (ol_msg_command_t)('H')
 
 #define OL_COMMAND_ECHO (ol_msg_command_t)('I')
@@ -33,7 +34,8 @@ typedef uint8_t ol_msg_command_t;
 
 #define OL_SERIAL_COMPENSATED_SIZE(SIZE) (uint32_t)(4 * (((SIZE) + 2) / 3))
 
-struct OlTransferCommand{
+struct OlTransferCommand
+{
     uint32_t data_transferred_amt;
     ol_msg_command_t val_command;
     blox val_data;

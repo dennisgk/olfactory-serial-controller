@@ -2,23 +2,30 @@ from . import Window
 from PySide6.QtCore import QObject
 from PySide6.QtWidgets import QListWidgetItem
 from PySide6.QtCore import Qt
+import serial_dev
 
 class MainWindowView(QObject):
     def __init__(self, window):
         super().__init__()
         self.window = window
-        self._running_csv_checked = False
-        
-        self.window.ui.running_csv_checkbox.stateChanged.connect(lambda: self.window.ui.running_csv_checkbox.setCheckState(Qt.Checked if self._running_csv_checked else Qt.Unchecked))
+        self._csv_active = serial_dev.ol_csv_active_stopped
+
+        self.window.ui.running_csv_checkbox.stateChanged.connect(lambda: self.window.ui.running_csv_checkbox.setCheckState(self._get_csv_checkbox_state()))
 
     def set_running_csv(self, val):
-        self._running_csv_checked = val
-        self.window.ui.start_csv_button.setEnabled(not self._running_csv_checked)
-        self.window.ui.stop_csv_button.setEnabled(self._running_csv_checked)
-        self.window.ui.running_csv_checkbox.setChecked(self._running_csv_checked)
-
-    def get_running_csv(self):
-        return self._running_csv_checked
+        self._csv_active = val
+        self.window.ui.start_csv_button.setEnabled(self._csv_active == serial_dev.ol_csv_active_stopped)
+        self.window.ui.pause_csv_button.setText("Resume" if self._csv_active == serial_dev.ol_csv_active_paused else "Pause")
+        self.window.ui.pause_csv_button.setEnabled(self._csv_active != serial_dev.ol_csv_active_stopped)
+        self.window.ui.stop_csv_button.setEnabled(self._csv_active != serial_dev.ol_csv_active_stopped)
+        self.window.ui.running_csv_checkbox.setCheckState(self._get_csv_checkbox_state())
+        
+    def _get_csv_checkbox_state(self):
+        return (
+            Qt.Checked if self._csv_active == serial_dev.ol_csv_active_started 
+            else Qt.PartiallyChecked if self._csv_active == serial_dev.ol_csv_active_paused 
+            else Qt.Unchecked
+        )
 
     def add_relay(self, num, val):
         item = QListWidgetItem(f"Relay {num+1}")

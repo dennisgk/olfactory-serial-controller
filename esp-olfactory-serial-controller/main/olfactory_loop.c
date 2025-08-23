@@ -7,6 +7,8 @@ struct OlAppState ol_app_state = {0};
 
 void ol_csv_run_task(void *pv)
 {
+    ol_app_state.csv_active = OL_CSV_ACTIVE_STARTED;
+
     uint32_t num_runs_taken = 0;
 
     ol_bool_t is_running = OL_TRUE;
@@ -26,7 +28,7 @@ void ol_csv_run_task(void *pv)
         {
             blox_stuff(struct OlRelayCsvIterationRowChoice, blox_back(struct OlRelayCsvIterationChoice, ol_app_state.csv_table.choices).row_choices);
 
-            #define LATEST_ROW blox_back(struct OlRelayCsvIterationRowChoice, blox_back(struct OlRelayCsvIterationChoice, ol_app_state.csv_table.choices).row_choices)
+#define LATEST_ROW blox_back(struct OlRelayCsvIterationRowChoice, blox_back(struct OlRelayCsvIterationChoice, ol_app_state.csv_table.choices).row_choices)
 
             LATEST_ROW.active = OL_TRUE;
             LATEST_ROW.actual_time_millis =
@@ -71,20 +73,40 @@ void ol_csv_run_task(void *pv)
                 ticks_to_wait = (((uint32_t)esp_random()) % range) + row.time_val_1;
             }
 
-            uint32_t notified = ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(ticks_to_wait));
+#define FINISH_UP_IT              \
+    LATEST_ROW.active = OL_FALSE; \
+    LATEST_ROW.actual_time_millis = (esp_timer_get_time() / (int64_t)1000) - LATEST_ROW.actual_time_millis;
 
-            LATEST_ROW.active = OL_FALSE;
-            LATEST_ROW.actual_time_millis =
-                (esp_timer_get_time() / (int64_t)1000) -
-                LATEST_ROW.actual_time_millis;
-
-            if (notified > 0)
+            ol_task_event_t notified;
+            if (xTaskNotifyWait(0, 0, &notified, pdMS_TO_TICKS(ticks_to_wait)) == pdTRUE)
             {
-                is_running = OL_FALSE;
-                break;
+                if (notified == OL_TASK_EVENT_PAUSE)
+                {
+                    ol_app_state.csv_active = OL_CSV_ACTIVE_PAUSED;
+                    ol_command_get_csv_active_handler(blox_nil());
+
+                    xTaskNotifyWait(0, 0, &notified, portMAX_DELAY);
+                    if (notified == OL_TASK_EVENT_PAUSE)
+                    {
+                        ol_app_state.csv_active = OL_CSV_ACTIVE_STARTED;
+                        ol_command_get_csv_active_handler(blox_nil());
+                        FINISH_UP_IT;
+                        continue;
+                    }
+                }
+
+                if (notified == OL_TASK_EVENT_STOP)
+                {
+                    is_running = OL_FALSE;
+                    FINISH_UP_IT;
+                    break;
+                }
             }
 
-            #undef LATEST_ROW
+            FINISH_UP_IT;
+
+#undef FINISH_UP_IT
+#undef LATEST_ROW
         }
 
         num_runs_taken++;
@@ -114,22 +136,25 @@ void ol_csv_run_task(void *pv)
 
     ol_app_state.csv_task_spawn_handle = NULL;
 
+    ol_app_state.csv_active = OL_CSV_ACTIVE_STOPPED;
     ol_command_get_csv_active_handler(blox_nil());
 
     vTaskDelete(NULL);
 }
 
-void ol_command_get_relays_handler(blox event_blox){
+void ol_command_get_relays_handler(blox event_blox)
+{
     olfactory_serial_post(OL_COMMAND_GET_RELAYS, blox_use_array(uint8_t, ol_app_state.relays, sizeof(ol_msg_property_t) * OL_NUM_RELAY_PORTS));
 }
 
-void ol_command_get_csv_active_handler(blox event_blox){
-    ol_bool_t act = ol_app_state.csv_task_spawn_handle == NULL ? OL_FALSE : OL_TRUE;
-    olfactory_serial_post(OL_COMMAND_GET_CSV_ACTIVE, blox_use_array(uint8_t, &act, sizeof(ol_bool_t)));
+void ol_command_get_csv_active_handler(blox event_blox)
+{
+    olfactory_serial_post(OL_COMMAND_GET_CSV_ACTIVE, blox_use_array(uint8_t, &ol_app_state.csv_active, sizeof(ol_csv_active_state_t)));
 }
 
-void ol_command_get_csv_prog_handler(blox event_blox){
-    if (ol_app_state.csv_task_spawn_handle == NULL)
+void ol_command_get_csv_prog_handler(blox event_blox)
+{
+    if (ol_app_state.csv_active == OL_CSV_ACTIVE_STOPPED)
     {
         olfactory_serial_post(OL_COMMAND_GET_CSV_PROG, blox_nil());
         return;
@@ -137,7 +162,7 @@ void ol_command_get_csv_prog_handler(blox event_blox){
 
     blox resp_data = blox_make(uint8_t, 2 * sizeof(uint32_t));
 
-    *((uint32_t*)resp_data.data) = ol_app_state.csv_table.csv_clone.length;
+    *((uint32_t *)resp_data.data) = ol_app_state.csv_table.csv_clone.length;
     blox_append(uint8_t, resp_data, ol_app_state.csv_table.csv_clone);
 
     for (size_t i = 0; i < ol_app_state.csv_table.choices.length; i++)
@@ -160,15 +185,16 @@ void ol_command_get_csv_prog_handler(blox event_blox){
     }
 
     uint32_t cur_len = resp_data.length - sizeof(uint32_t) - sizeof(uint32_t) - ol_app_state.csv_table.csv_clone.length;
-    *((uint32_t*)(blox_index(uint8_t, resp_data, sizeof(uint32_t)))) = cur_len;
-    
+    *((uint32_t *)(blox_index(uint8_t, resp_data, sizeof(uint32_t)))) = cur_len;
+
     olfactory_serial_post(OL_COMMAND_GET_CSV_PROG, resp_data);
 
     blox_free(resp_data);
 }
 
-void ol_command_get_csv_cur_stat_handler(blox event_blox){
-    if (ol_app_state.csv_task_spawn_handle == NULL)
+void ol_command_get_csv_cur_stat_handler(blox event_blox)
+{
+    if (ol_app_state.csv_active == OL_CSV_ACTIVE_STOPPED)
     {
         olfactory_serial_post(OL_COMMAND_GET_CSV_CUR_STAT, blox_nil());
         return;
@@ -227,17 +253,17 @@ void ol_command_get_csv_cur_stat_handler(blox event_blox){
     blox_free(resp_data);
 }
 
-void ol_command_alter_handler(blox event_blox){
-    if (event_blox.length != sizeof(ol_msg_property_t) * OL_NUM_RELAY_PORTS){
+void ol_command_alter_handler(blox event_blox)
+{
+    if (event_blox.length != sizeof(ol_msg_property_t) * OL_NUM_RELAY_PORTS)
+    {
         return;
     }
 
     ol_msg_property_t *relay_comms = (ol_msg_property_t *)event_blox.data;
     for (ol_relay_port_t i = 0; i < OL_NUM_RELAY_PORTS; i++)
     {
-        if ((relay_comms[i] == OL_RELAY_IGNORE) 
-            || (ol_app_state.relays[i] == OL_RELAY_ON && relay_comms[i] == OL_RELAY_ACTIVATE) 
-            || (ol_app_state.relays[i] == OL_RELAY_OFF && relay_comms[i] == OL_RELAY_DEACTIVATE))
+        if ((relay_comms[i] == OL_RELAY_IGNORE) || (ol_app_state.relays[i] == OL_RELAY_ON && relay_comms[i] == OL_RELAY_ACTIVATE) || (ol_app_state.relays[i] == OL_RELAY_OFF && relay_comms[i] == OL_RELAY_DEACTIVATE))
             continue;
 
         if (relay_comms[i] == OL_RELAY_ACTIVATE)
@@ -256,8 +282,9 @@ void ol_command_alter_handler(blox event_blox){
     ol_command_get_relays_handler(blox_nil());
 }
 
-void ol_command_csv_start_handler(blox event_blox){
-    if (ol_app_state.csv_task_spawn_handle != NULL)
+void ol_command_csv_start_handler(blox event_blox)
+{
+    if (ol_app_state.csv_active != OL_CSV_ACTIVE_STOPPED)
     {
         return;
     }
@@ -327,21 +354,35 @@ void ol_command_csv_start_handler(blox event_blox){
     xTaskCreate(ol_csv_run_task, STRINGIFY(ol_csv_run_task), 4096, NULL, tskIDLE_PRIORITY + 5, &ol_app_state.csv_task_spawn_handle);
 }
 
-void ol_command_csv_stop_handler(blox event_blox){
-    if (ol_app_state.csv_task_spawn_handle == NULL)
+void ol_command_csv_pause_handler(blox event_blox)
+{
+    if (ol_app_state.csv_active == OL_CSV_ACTIVE_STOPPED)
     {
         return;
     }
 
-    xTaskNotifyGive(ol_app_state.csv_task_spawn_handle);
+    xTaskNotify(ol_app_state.csv_task_spawn_handle, OL_TASK_EVENT_PAUSE, eSetValueWithOverwrite);
 }
 
-void ol_command_echo_handler(blox event_blox){
+void ol_command_csv_stop_handler(blox event_blox)
+{
+    if (ol_app_state.csv_active == OL_CSV_ACTIVE_STOPPED)
+    {
+        return;
+    }
+
+    xTaskNotify(ol_app_state.csv_task_spawn_handle, OL_TASK_EVENT_STOP, eSetValueWithOverwrite);
+}
+
+void ol_command_echo_handler(blox event_blox)
+{
     olfactory_serial_post(OL_COMMAND_ECHO, event_blox);
 }
 
-void olfactory_loop_init(){
+void olfactory_loop_init()
+{
     ol_app_state.csv_task_spawn_handle = NULL;
+    ol_app_state.csv_active = OL_CSV_ACTIVE_STOPPED;
     ol_app_state.csv_table.rows = blox_nil();
     ol_app_state.csv_table.run_adj = OL_CSV_RUN_NUMBER;
     ol_app_state.csv_table.run_num = 0;

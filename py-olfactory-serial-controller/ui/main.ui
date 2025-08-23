@@ -120,6 +120,25 @@
        </widget>
       </item>
       <item>
+       <widget class="QPushButton" name="pause_csv_button">
+        <property name="enabled">
+         <bool>false</bool>
+        </property>
+        <property name="minimumSize">
+         <size>
+          <width>231</width>
+          <height>41</height>
+         </size>
+        </property>
+        <property name="focusPolicy">
+         <enum>Qt::NoFocus</enum>
+        </property>
+        <property name="text">
+         <string>PLACEHOLDER</string>
+        </property>
+       </widget>
+      </item>
+      <item>
        <widget class="QPushButton" name="stop_csv_button">
         <property name="enabled">
          <bool>false</bool>

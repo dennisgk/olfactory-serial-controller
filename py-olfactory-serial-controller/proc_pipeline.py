@@ -157,6 +157,9 @@ def serial_dev_main_pipeline(controller, ol, relays, csv_active, csv_cur_file):
         csv_select_window = controller._launch_csv_select(main_window)
         csv_select_window.view.ev_submit.connect(send_csv)
 
+    def pause_csv():
+        ol.post_command_csv_pause()
+        
     def stop_csv():
         ol.post_command_csv_stop()
 
@@ -184,6 +187,7 @@ def serial_dev_main_pipeline(controller, ol, relays, csv_active, csv_cur_file):
     main_window.ui.disable_button.clicked.connect(disable_relay)
 
     main_window.ui.start_csv_button.clicked.connect(start_csv)
+    main_window.ui.pause_csv_button.clicked.connect(pause_csv)
     main_window.ui.stop_csv_button.clicked.connect(stop_csv)
     main_window.ui.show_csv_button.clicked.connect(show_csv)
     

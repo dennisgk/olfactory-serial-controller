@@ -1,97 +1,155 @@
-from PySide6 import QtCore, QtWidgets, QtGui
+# -*- coding: utf-8 -*-
+
+################################################################################
+## Form generated from reading UI file 'main.ui'
+##
+## Created by: Qt User Interface Compiler version 6.9.0
+##
+## WARNING! All changes made in this file will be lost when recompiling UI file!
+################################################################################
+
+from PySide6.QtCore import (QCoreApplication, QDate, QDateTime, QLocale,
+    QMetaObject, QObject, QPoint, QRect,
+    QSize, QTime, QUrl, Qt)
+from PySide6.QtGui import (QBrush, QColor, QConicalGradient, QCursor,
+    QFont, QFontDatabase, QGradient, QIcon,
+    QImage, QKeySequence, QLinearGradient, QPainter,
+    QPalette, QPixmap, QRadialGradient, QTransform)
+from PySide6.QtWidgets import (QAbstractItemView, QApplication, QCheckBox, QFrame,
+    QHBoxLayout, QLabel, QListWidget, QListWidgetItem,
+    QMainWindow, QPushButton, QSizePolicy, QSpacerItem,
+    QVBoxLayout, QWidget)
 
 class Main(object):
     def setupUi(self, MainWindow):
-        MainWindow.setObjectName("MainWindow")
+        if not MainWindow.objectName():
+            MainWindow.setObjectName(u"MainWindow")
         MainWindow.resize(540, 320)
-        self.central_widget = QtWidgets.QWidget(MainWindow)
-        self.central_widget.setObjectName("central_widget")
-        self.horizontalLayout = QtWidgets.QHBoxLayout(self.central_widget)
-        self.horizontalLayout.setObjectName("horizontalLayout")
-        self.relays_layout = QtWidgets.QVBoxLayout()
-        self.relays_layout.setObjectName("relays_layout")
-        self.relays_label = QtWidgets.QLabel(self.central_widget)
-        font = QtGui.QFont()
+        self.central_widget = QWidget(MainWindow)
+        self.central_widget.setObjectName(u"central_widget")
+        self.horizontalLayout = QHBoxLayout(self.central_widget)
+        self.horizontalLayout.setObjectName(u"horizontalLayout")
+        self.relays_layout = QVBoxLayout()
+        self.relays_layout.setObjectName(u"relays_layout")
+        self.relays_label = QLabel(self.central_widget)
+        self.relays_label.setObjectName(u"relays_label")
+        font = QFont()
         font.setPointSize(16)
         self.relays_label.setFont(font)
-        self.relays_label.setObjectName("relays_label")
+
         self.relays_layout.addWidget(self.relays_label)
-        self.relays_list = QtWidgets.QListWidget(self.central_widget)
-        self.relays_list.setFocusPolicy(QtCore.Qt.NoFocus)
-        self.relays_list.setSelectionMode(QtWidgets.QAbstractItemView.ExtendedSelection)
-        self.relays_list.setObjectName("relays_list")
+
+        self.relays_list = QListWidget(self.central_widget)
+        self.relays_list.setObjectName(u"relays_list")
+        self.relays_list.setFocusPolicy(Qt.NoFocus)
+        self.relays_list.setSelectionMode(QAbstractItemView.ExtendedSelection)
+
         self.relays_layout.addWidget(self.relays_list)
-        self.relays_button_layout = QtWidgets.QHBoxLayout()
-        self.relays_button_layout.setObjectName("relays_button_layout")
-        self.enable_button = QtWidgets.QPushButton(self.central_widget)
-        self.enable_button.setMinimumSize(QtCore.QSize(0, 41))
-        self.enable_button.setFocusPolicy(QtCore.Qt.NoFocus)
-        self.enable_button.setObjectName("enable_button")
+
+        self.relays_button_layout = QHBoxLayout()
+        self.relays_button_layout.setObjectName(u"relays_button_layout")
+        self.enable_button = QPushButton(self.central_widget)
+        self.enable_button.setObjectName(u"enable_button")
+        self.enable_button.setMinimumSize(QSize(0, 41))
+        self.enable_button.setFocusPolicy(Qt.NoFocus)
+
         self.relays_button_layout.addWidget(self.enable_button)
-        self.disable_button = QtWidgets.QPushButton(self.central_widget)
-        self.disable_button.setMinimumSize(QtCore.QSize(0, 41))
-        self.disable_button.setFocusPolicy(QtCore.Qt.NoFocus)
-        self.disable_button.setObjectName("disable_button")
+
+        self.disable_button = QPushButton(self.central_widget)
+        self.disable_button.setObjectName(u"disable_button")
+        self.disable_button.setMinimumSize(QSize(0, 41))
+        self.disable_button.setFocusPolicy(Qt.NoFocus)
+
         self.relays_button_layout.addWidget(self.disable_button)
+
+
         self.relays_layout.addLayout(self.relays_button_layout)
+
+
         self.horizontalLayout.addLayout(self.relays_layout)
-        self.actions_layout = QtWidgets.QVBoxLayout()
-        self.actions_layout.setObjectName("actions_layout")
-        self.actions_label = QtWidgets.QLabel(self.central_widget)
-        self.actions_label.setMinimumSize(QtCore.QSize(231, 0))
-        self.actions_label.setMaximumSize(QtCore.QSize(16777215, 31))
-        font = QtGui.QFont()
-        font.setPointSize(16)
+
+        self.actions_layout = QVBoxLayout()
+        self.actions_layout.setObjectName(u"actions_layout")
+        self.actions_label = QLabel(self.central_widget)
+        self.actions_label.setObjectName(u"actions_label")
+        self.actions_label.setMinimumSize(QSize(231, 0))
+        self.actions_label.setMaximumSize(QSize(16777215, 31))
         self.actions_label.setFont(font)
-        self.actions_label.setObjectName("actions_label")
+
         self.actions_layout.addWidget(self.actions_label)
-        self.start_csv_button = QtWidgets.QPushButton(self.central_widget)
-        self.start_csv_button.setMinimumSize(QtCore.QSize(231, 41))
-        self.start_csv_button.setFocusPolicy(QtCore.Qt.NoFocus)
-        self.start_csv_button.setObjectName("start_csv_button")
+
+        self.start_csv_button = QPushButton(self.central_widget)
+        self.start_csv_button.setObjectName(u"start_csv_button")
+        self.start_csv_button.setMinimumSize(QSize(231, 41))
+        self.start_csv_button.setFocusPolicy(Qt.NoFocus)
+
         self.actions_layout.addWidget(self.start_csv_button)
-        self.stop_csv_button = QtWidgets.QPushButton(self.central_widget)
+
+        self.pause_csv_button = QPushButton(self.central_widget)
+        self.pause_csv_button.setObjectName(u"pause_csv_button")
+        self.pause_csv_button.setEnabled(False)
+        self.pause_csv_button.setMinimumSize(QSize(231, 41))
+        self.pause_csv_button.setFocusPolicy(Qt.NoFocus)
+
+        self.actions_layout.addWidget(self.pause_csv_button)
+
+        self.stop_csv_button = QPushButton(self.central_widget)
+        self.stop_csv_button.setObjectName(u"stop_csv_button")
         self.stop_csv_button.setEnabled(False)
-        self.stop_csv_button.setMinimumSize(QtCore.QSize(231, 41))
-        self.stop_csv_button.setFocusPolicy(QtCore.Qt.NoFocus)
-        self.stop_csv_button.setObjectName("stop_csv_button")
+        self.stop_csv_button.setMinimumSize(QSize(231, 41))
+        self.stop_csv_button.setFocusPolicy(Qt.NoFocus)
+
         self.actions_layout.addWidget(self.stop_csv_button)
-        self.actions_separator = QtWidgets.QFrame(self.central_widget)
-        self.actions_separator.setFrameShape(QtWidgets.QFrame.HLine)
-        self.actions_separator.setFrameShadow(QtWidgets.QFrame.Sunken)
-        self.actions_separator.setObjectName("actions_separator")
+
+        self.actions_separator = QFrame(self.central_widget)
+        self.actions_separator.setObjectName(u"actions_separator")
+        self.actions_separator.setFrameShape(QFrame.Shape.HLine)
+        self.actions_separator.setFrameShadow(QFrame.Shadow.Sunken)
+
         self.actions_layout.addWidget(self.actions_separator)
-        self.running_csv_checkbox = QtWidgets.QCheckBox(self.central_widget)
+
+        self.running_csv_checkbox = QCheckBox(self.central_widget)
+        self.running_csv_checkbox.setObjectName(u"running_csv_checkbox")
         self.running_csv_checkbox.setEnabled(True)
-        self.running_csv_checkbox.setMinimumSize(QtCore.QSize(231, 31))
-        self.running_csv_checkbox.setFocusPolicy(QtCore.Qt.NoFocus)
+        self.running_csv_checkbox.setMinimumSize(QSize(231, 31))
+        self.running_csv_checkbox.setFocusPolicy(Qt.NoFocus)
         self.running_csv_checkbox.setCheckable(True)
         self.running_csv_checkbox.setChecked(False)
-        self.running_csv_checkbox.setObjectName("running_csv_checkbox")
+
         self.actions_layout.addWidget(self.running_csv_checkbox)
-        self.show_csv_button = QtWidgets.QPushButton(self.central_widget)
+
+        self.show_csv_button = QPushButton(self.central_widget)
+        self.show_csv_button.setObjectName(u"show_csv_button")
         self.show_csv_button.setEnabled(True)
-        self.show_csv_button.setMinimumSize(QtCore.QSize(231, 41))
-        self.show_csv_button.setFocusPolicy(QtCore.Qt.NoFocus)
-        self.show_csv_button.setObjectName("show_csv_button")
+        self.show_csv_button.setMinimumSize(QSize(231, 41))
+        self.show_csv_button.setFocusPolicy(Qt.NoFocus)
+
         self.actions_layout.addWidget(self.show_csv_button)
-        self.actions_layout_stretch = QtWidgets.QWidget(self.central_widget)
-        self.actions_layout_stretch.setObjectName("actions_layout_stretch")
-        self.actions_layout.addWidget(self.actions_layout_stretch)
+
+        self.actions_layout_stretch = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
+
+        self.actions_layout.addItem(self.actions_layout_stretch)
+
+
         self.horizontalLayout.addLayout(self.actions_layout)
+
         MainWindow.setCentralWidget(self.central_widget)
 
         self.retranslateUi(MainWindow)
-        QtCore.QMetaObject.connectSlotsByName(MainWindow)
+
+        QMetaObject.connectSlotsByName(MainWindow)
+    # setupUi
 
     def retranslateUi(self, MainWindow):
-        _translate = QtCore.QCoreApplication.translate
-        MainWindow.setWindowTitle(_translate("MainWindow", "Olfactory Controller"))
-        self.relays_label.setText(_translate("MainWindow", "Relays"))
-        self.enable_button.setText(_translate("MainWindow", "Enable"))
-        self.disable_button.setText(_translate("MainWindow", "Disable"))
-        self.actions_label.setText(_translate("MainWindow", "Actions"))
-        self.start_csv_button.setText(_translate("MainWindow", "Start CSV"))
-        self.stop_csv_button.setText(_translate("MainWindow", "Stop CSV"))
-        self.running_csv_checkbox.setText(_translate("MainWindow", "Running CSV"))
-        self.show_csv_button.setText(_translate("MainWindow", "Show CSV"))
+        MainWindow.setWindowTitle(QCoreApplication.translate("MainWindow", u"Olfactory Controller", None))
+        self.relays_label.setText(QCoreApplication.translate("MainWindow", u"Relays", None))
+        self.enable_button.setText(QCoreApplication.translate("MainWindow", u"Enable", None))
+        self.disable_button.setText(QCoreApplication.translate("MainWindow", u"Disable", None))
+        self.actions_label.setText(QCoreApplication.translate("MainWindow", u"Actions", None))
+        self.start_csv_button.setText(QCoreApplication.translate("MainWindow", u"Start CSV", None))
+        self.pause_csv_button.setText(QCoreApplication.translate("MainWindow", u"PLACEHOLDER", None))
+        self.stop_csv_button.setText(QCoreApplication.translate("MainWindow", u"Stop CSV", None))
+        self.running_csv_checkbox.setText(QCoreApplication.translate("MainWindow", u"Running CSV", None))
+        self.show_csv_button.setText(QCoreApplication.translate("MainWindow", u"Show CSV", None))
+    # retranslateUi
+

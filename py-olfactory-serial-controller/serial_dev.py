@@ -14,6 +14,7 @@ ol_command_get_csv_cur_stat = bytes("E", encoding="ascii")[0]
 
 ol_command_alter = bytes("F", encoding="ascii")[0]
 ol_command_csv_start = bytes("G", encoding="ascii")[0]
+ol_command_csv_pause = bytes("J", encoding="ascii")[0]
 ol_command_csv_stop = bytes("H", encoding="ascii")[0]
 
 ol_command_echo = bytes("I", encoding="ascii")[0]
@@ -26,6 +27,10 @@ ol_num_relay_ports = 5
 
 ol_relay_off = 0
 ol_relay_on = 1
+
+ol_csv_active_stopped = 0
+ol_csv_active_started = 1
+ol_csv_active_paused = 2
 
 ol_relay_deactivate = 0
 ol_relay_activate = 1
@@ -86,6 +91,7 @@ class OlfactorySerial:
                                                  ol_command_get_csv_cur_stat,
                                                  ol_command_alter,
                                                  ol_command_csv_start,
+                                                 ol_command_csv_pause,
                                                  ol_command_csv_stop,
                                                  ol_command_echo]])
 
@@ -190,7 +196,7 @@ class OlfactorySerial:
             return lambda: handler([blox[x] == ol_relay_on for x in range(0, ol_num_relay_ports)])
 
         if command == ol_command_get_csv_active:
-            return lambda: handler(blox[0] == ol_true)
+            return lambda: handler(blox[0])
 
         if command == ol_command_get_csv_prog:
             return lambda: handler(blox)
@@ -202,6 +208,9 @@ class OlfactorySerial:
             return handler
 
         if command == ol_command_csv_start:
+            return handler
+        
+        if command == ol_command_csv_pause:
             return handler
 
         if command == ol_command_csv_stop:
@@ -233,6 +242,9 @@ class OlfactorySerial:
 
     def post_command_csv_start(self, file_path, perpetual, num_iterations):
         self._post(ol_command_csv_start, gen_command_start_csv(file_path, perpetual, num_iterations))
+
+    def post_command_csv_pause(self):
+        self._post(ol_command_csv_pause, bytes([]))
 
     def post_command_csv_stop(self):
         self._post(ol_command_csv_stop, bytes([]))

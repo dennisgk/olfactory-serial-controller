@@ -13,10 +13,19 @@ typedef uint8_t ol_relay_port_t;
 #define OL_NUM_RELAY_PORTS (ol_relay_port_t)5
 
 typedef uint8_t ol_relay_state_t;
+typedef uint8_t ol_csv_active_state_t;
+typedef uint32_t ol_task_event_t;
 typedef uint8_t ol_msg_property_t;
 
 #define OL_RELAY_OFF (ol_relay_state_t)0
 #define OL_RELAY_ON (ol_relay_state_t)1
+
+#define OL_CSV_ACTIVE_STOPPED (ol_csv_active_state_t)0
+#define OL_CSV_ACTIVE_STARTED (ol_csv_active_state_t)1
+#define OL_CSV_ACTIVE_PAUSED (ol_csv_active_state_t)2
+
+#define OL_TASK_EVENT_STOP (ol_task_event_t)1
+#define OL_TASK_EVENT_PAUSE (ol_task_event_t)2
 
 #define OL_RELAY_DEACTIVATE (ol_msg_property_t)0
 #define OL_RELAY_ACTIVATE (ol_msg_property_t)1
@@ -77,6 +86,7 @@ struct OlAppState
 
     TaskHandle_t csv_task_spawn_handle;
     struct OlRelayCsvTable csv_table;
+    ol_csv_active_state_t csv_active;
 };
 
 void olfactory_loop_init();
@@ -87,6 +97,7 @@ void ol_command_get_csv_prog_handler(blox event_blox);
 void ol_command_get_csv_cur_stat_handler(blox event_blox);
 void ol_command_alter_handler(blox event_blox);
 void ol_command_csv_start_handler(blox event_blox);
+void ol_command_csv_pause_handler(blox event_blox);
 void ol_command_csv_stop_handler(blox event_blox);
 void ol_command_echo_handler(blox event_blox);
 
