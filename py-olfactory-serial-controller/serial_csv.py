@@ -211,7 +211,7 @@ class CsvProgConv():
         return self._last_edit
     
     def get_headers(self):
-        return [tag_header, f"EXPECTED {time_header} (MS)", f"ACTUAL {time_header} (MS)"] + [f"{relay_header}{x+1}" for x in range(0, serial_dev.ol_num_relay_ports)] + ["R CONFIG"]
+        return [tag_header, f"EXPECTED {time_header}", f"ACTUAL {time_header}"] + [f"{relay_header}{x+1}" for x in range(0, serial_dev.ol_num_relay_ports)] + ["R CONFIG"]
     
     def get_row(self, it, row):
 

@@ -1,8 +1,9 @@
 from PySide6.QtWidgets import QMainWindow
 from PySide6.QtCore import Signal
 from qt_material import QtStyleTools
+from .force_foreground import MainWindow
 
-class Window(QMainWindow, QtStyleTools):
+class Window(MainWindow, QtStyleTools):
     ev_close = Signal(object)
 
     def __init__(self, inst_class, parent=None):

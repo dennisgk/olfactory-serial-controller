@@ -1,4 +1,5 @@
 from PySide6.QtWidgets import QApplication
+from PySide6 import QtCore
 import sys
 from sync_waiter import SyncWaiter
 from background_dispatch_worker import BackgroundDispatchWorker, QuitEvent, ControllerEvent

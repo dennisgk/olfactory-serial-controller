@@ -163,7 +163,8 @@ def serial_dev_main_pipeline(controller, ol, relays, csv_active, csv_cur_file):
     def show_csv():
         select_window = controller._launch_select("Select the CSV:")
         for i, csv_prog_conv in enumerate(csv_saved_data):
-            item = QListWidgetItem(f"{i+1}: CSV [Last Edited: {csv_prog_conv.get_last_edit().strftime("%Y-%m-%d %H:%M:%S")}]")
+            last_edit_timestamp = csv_prog_conv.get_last_edit().strftime("%Y-%m-%d %H:%M:%S")
+            item = QListWidgetItem(f"{i+1}: CSV [Last Edited: {last_edit_timestamp}]")
             item.setFlags(Qt.ItemIsEnabled | Qt.ItemIsSelectable)
             item.setData(Qt.UserRole, csv_prog_conv)
             select_window.ui.list_widget.addItem(item)

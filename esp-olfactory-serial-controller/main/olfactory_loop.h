@@ -71,7 +71,8 @@ struct OlRelayCsvTable
     blox choices;
 };
 
-struct OlAppState{
+struct OlAppState
+{
     ol_relay_state_t relays[OL_NUM_RELAY_PORTS];
 
     TaskHandle_t csv_task_spawn_handle;

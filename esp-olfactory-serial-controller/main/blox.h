@@ -1,397 +1,183 @@
-#ifndef BLOX_H_INCLUDED
-#define BLOX_H_INCLUDED
+#ifndef BLOX_H
+#define BLOX_H
 
-#include <memory.h>
+/* Minimal, header-only blox — no external deps.
+   Implements just what olfactory_{loop,serial}.c use.
+*/
+#include <stddef.h>
+#include <stdint.h>
+#include <string.h>
 #include <stdlib.h>
 
-typedef struct
+/* Public type (unchanged) */
+typedef struct blox
 {
-    void *data;
-    size_t length;
-    size_t capacity;
+    void *data;      /* pointer to T */
+    size_t length;   /* number of T elements */
+    size_t capacity; /* number of T elements allocated */
 } blox;
 
-typedef void *(*blox_allocator)(void *, size_t);
+/* ---------- internal helpers (bytes-based growth) ---------- */
 
-blox_allocator blox_realloc(blox_allocator reset);
+static inline void __blox_reserve_bytes(blox *v, size_t elem_size, size_t need_bytes)
+{
+    size_t need_elems = (need_bytes + elem_size - 1) / elem_size; /* round up */
+    if (v->capacity >= need_elems)
+        return;
 
-blox blox_nil(void);
+    size_t newcap = v->capacity ? v->capacity : 2;
+    while (newcap < need_elems)
+    {
+        size_t nxt = newcap << 1;
+        if (nxt < newcap)
+        { /* overflow guard */
+            newcap = need_elems;
+            break;
+        }
+        newcap = nxt;
+    }
 
-#define blox_data(TYPE, buffer) ((TYPE *)(buffer).data)
+    void *p = realloc(v->data, newcap * elem_size);
+    if (!p)
+    {
+        /* fallback: try exact */
+        p = realloc(v->data, need_elems * elem_size);
+        if (!p)
+        {
+            abort();
+        }
+        newcap = need_elems;
+    }
+    v->data = p;
+    v->capacity = newcap;
+}
 
-#define blox_index(TYPE, buffer, index) (blox_data(TYPE, buffer) + (index))
+static inline void __blox_resize_elems(blox *v, size_t elem_size, size_t new_len_elems)
+{
+    __blox_reserve_bytes(v, elem_size, new_len_elems * elem_size);
+    v->length = new_len_elems;
+}
 
-#define blox_get(TYPE, buffer, index) (*blox_index(TYPE, buffer, index))
+/* ---------- constructors / basic utilities ---------- */
 
-#define blox_set(TYPE, buffer, index, value) \
-    (blox_get(TYPE, buffer, index) = (TYPE)(value))
+static inline blox blox_nil(void)
+{
+    blox b = (blox){0};
+    return b;
+}
 
-#define blox_length(buffer) (buffer).length
+/* Non-owning view (length is element-count) */
+static inline blox blox_use_(const void *data, size_t length)
+{
+    blox b;
+    b.data = (void *)data;
+    b.length = length;
+    b.capacity = length;
+    return b;
+}
 
-#define blox_empty(buffer) (blox_length(buffer) == 0)
+/* Owning make: allocate for `length` elements; set length = capacity = length */
+static inline blox blox_make_(size_t width, size_t length, int /*reserved*/)
+{
+    (void)0;
+    blox b = {0};
+    __blox_reserve_bytes(&b, width, length * width);
+    b.length = length;
+    b.capacity = (b.capacity < length) ? length : b.capacity; /* set by reserve */
+    return b;
+}
 
-#define blox_capacity(buffer) (buffer).capacity
+/* Clone raw memory (length in elements) */
+static inline blox blox_clone_(size_t width, const void *data, size_t length)
+{
+    blox out = blox_make_(width, length, 0);
+    if (length)
+        memcpy(out.data, data, length * width);
+    return out;
+}
 
-#define blox_make(TYPE, length) blox_make_(sizeof(TYPE), length, 0)
+/* Map macro-call to the inline above */
+#define blox_clone(T, other_b) \
+    blox_clone_(sizeof(T), (other_b).data, (other_b).length)
 
-blox blox_use_(const void *data, size_t length);
-
-#define blox__safe_subtract(a, b) (a < b ? 0 : a - b)
-
-#define blox_use(array, length) blox_use_(array, length)
-
-#define blox_use_array(TYPE, array, length) blox_use(array, length)
-
-#define blox_use_sequence(TYPE, start, end) blox_use(start, end - start)
-
-#define blox_use_view(TYPE, other, start, length) \
-    blox_use(blox_index(TYPE, other, start), length)
-
-#define blox_use_window(TYPE, other, start, end) \
-    blox_use_view(other, start, blox__safe_subtract(end, start))
-
-#define blox__safe_last(buffer) blox__safe_subtract((buffer).length, 1)
-
-#define blox_use_string(TYPE, string) blox_use_string_(sizeof(TYPE), string)
-
-#define blox_from_array(TYPE, array, length) \
-    blox_clone(TYPE, blox_use_array(TYPE, array, length))
-
-#define blox_from_string(TYPE, string) \
-    blox_clone(TYPE, blox_use_string(TYPE, string))
-
-#define blox_from_sequence(TYPE, start, end) \
-    blox_clone(TYPE, blox_use_sequence(TYPE, start, end))
-
-#define blox_reserved(TYPE, length) blox_make_(sizeof(TYPE), length, 1)
-
-#define blox_create(TYPE) blox_make(TYPE, 0)
-
-#define blox_slice(TYPE, buffer, start, amount) \
-    blox_clone(TYPE, blox_use_view(TYPE, buffer, start, amount))
-
-#define blox_slice_range(TYPE, buffer, start, end) \
-    blox_slice(TYPE, buffer, start, blox__safe_subtract(end, start))
-
-#define blox_slice_end(TYPE, buffer, start) \
- blox_slice_range(TYPE, buffer, start, (buffer).length))
-
-#define blox_slice_first(TYPE, buffer, amount) \
-    blox_slice(TYPE, buffer, 0,                \
-               amount < (buffer).length ? amount : (buffer).length)
-
-#define blox_slice_last(TYPE, buffer, amount)                              \
-    blox_slice(TYPE, buffer, blox__safe_subtract((buffer).length, amount), \
-               amount < (buffer).length ? amount : 0)
-
-#define blox_shrink(TYPE, buffer) blox_resize(TYPE, buffer, 0)
-
-#define blox_drop(buffer)                        \
-    do                                           \
-    {                                            \
-        (buffer).data = NULL;                    \
-        (buffer).length = (buffer).capacity = 0; \
+/* Free (only use on owning buffers — your callsites do) */
+#define blox_free(v)                   \
+    do                                 \
+    {                                  \
+        if ((v).data)                  \
+            free((v).data);            \
+        (v).data = NULL;               \
+        (v).length = (v).capacity = 0; \
     } while (0)
 
-#define blox_clear_at(TYPE, buffer, start, amount)          \
-    do                                                      \
-    {                                                       \
-        TYPE *cursor = blox_index(TYPE, (buffer), (start)); \
-        if ((cursor + amount) >= blox_end(TYPE, (buffer)))  \
-            break;                                          \
-        memset(cursor, 0, amount * sizeof(TYPE));           \
-    } while (0)
+/* ---------- typed API (exact names your code uses) ---------- */
 
-#define blox_clear_range(TYPE, buffer, start, end) \
-    blox_clear_at(TYPE, buffer, start, blox__safe_subtract(end, start))
+#define blox_create(T) (blox_nil())
 
-#define blox_clear_end(TYPE, buffer, start) \
-    blox_clear_at(TYPE, buffer, start,      \
-                  blox__safe_subtract((buffer).length, start))
+/* bytes_or_elems is BYTES in your callers; convert to elements */
+#define blox_use_array(T, ptr, bytes_or_elems) \
+    blox_use_((ptr), (size_t)(bytes_or_elems) / sizeof(T))
 
-#define blox_clear(TYPE, buffer) blox_clear_end(TYPE, buffer, 0)
+#define blox_make(T, elems) \
+    blox_make_(sizeof(T), (size_t)(elems), 0)
 
-#define blox_erase(TYPE, buffer, index) blox_erase_at(TYPE, buffer, index, 1)
-
-#define blox_erase_at(TYPE, buffer, start, amount)                        \
-    do                                                                    \
-    {                                                                     \
-        TYPE *begin = blox_index(TYPE, (buffer), start);                  \
-        size_t length = (buffer).length;                                  \
-        memmove(begin, begin + amount, sizeof(TYPE) * (length - amount)); \
-        blox_shrink_by(TYPE, (buffer), amount);                           \
-    } while (0)
-
-#define blox_erase_range(TYPE, buffer, start, end) \
-    blox_erase_at(TYPE, buffer, start, blox__safe_subtract(end, start))
-
-#define blox_insert(TYPE, buffer, index, value)      \
-    do                                               \
-    {                                                \
-        size_t position = (index);                   \
-        size_t end = (buffer).length;                \
-        if (position >= end)                         \
-            blox_resize(TYPE, buffer, position + 1); \
-        blox_set(TYPE, buffer, position, (value));   \
-    } while (0)
-
-#define blox_resize(TYPE, buffer, size)                                     \
-    do                                                                      \
-    {                                                                       \
-        size_t request = (size);                                            \
-        size_t capacity = (buffer).capacity;                                \
-        size_t length = (buffer).length;                                    \
-        if (request == length)                                              \
-            break;                                                          \
-        if (request >= capacity)                                            \
-        {                                                                   \
-            if (!capacity)                                                  \
-                ++capacity;                                                 \
-            while (capacity <= request)                                     \
-                capacity <<= 1;                                             \
-            void *chunk =                                                   \
-                blox_realloc(NULL)((buffer).data, capacity * sizeof(TYPE)); \
-            if (chunk == NULL)                                              \
-                break;                                                      \
-            (buffer).data = chunk;                                          \
-            (buffer).capacity = capacity;                                   \
-        }                                                                   \
-        if (request > length)                                               \
-            memset(blox_index(TYPE, buffer, length), 0,                     \
-                   ((request - length) + 1) * sizeof(TYPE));                \
-        else                                                                \
-            memset(blox_index(TYPE, buffer, request), 0, sizeof(TYPE));     \
-        (buffer).length = request;                                          \
-    } while (0)
-
-#define blox_reserve(TYPE, buffer, size) \
-    do                                   \
-    {                                    \
-        size_t saved = (buffer).length;  \
-        blox_resize(TYPE, buffer, size); \
-        (buffer).length = saved;         \
-    } while (0)
-
-#define blox_stuff(TYPE, buffer) \
-    blox_resize(TYPE, buffer, blox_length(buffer) + 1)
-
-#define blox_push(TYPE, buffer, value) \
-    blox_insert(TYPE, buffer, (buffer).length, value)
-
-#define blox_pop(TYPE, buffer) \
-    blox_resize(TYPE, buffer, blox__safe_last(buffer))
-
-#define blox_front(TYPE, buffer) blox_get(TYPE, buffer, 0)
-
-#define blox_back(TYPE, buffer) blox_get(TYPE, buffer, blox__safe_last(buffer))
-
-#define blox_begin(TYPE, buffer) blox_index(TYPE, buffer, 0)
-
-#define blox_end(TYPE, buffer) blox_index(TYPE, buffer, (buffer).length)
-
-#define blox_top(TYPE, buffer) blox_index(TYPE, buffer, blox__safe_last(buffer))
-
-#define blox_bottom(TYPE, buffer) \
-    blox_index(TYPE, buffer, buffer.length ? -1 : 0)
-
-#define blox_shrink_by(TYPE, buffer, amount) \
-    do                                       \
-    {                                        \
-        size_t length = blox_length(buffer); \
-        if (amount <= length)                \
-            length -= amount;                \
-        blox_resize(TYPE, buffer, length);   \
-    } while (0)
-
-#define blox_shift_by(TYPE, buffer, amount)                                  \
-    do                                                                       \
-    {                                                                        \
-        if (amount == 0)                                                     \
-            break;                                                           \
-        TYPE *begin = blox_begin(TYPE, (buffer));                            \
-        TYPE *cursor = begin + (amount);                                     \
-        if (cursor > blox_end(TYPE, (buffer)))                               \
-            break;                                                           \
-        memmove(begin, cursor, sizeof(TYPE) * ((buffer).length - (amount))); \
-        blox_shrink_by(TYPE, (buffer), amount);                              \
-    } while (0)
-
-#define blox_shift(TYPE, buffer) blox_shift_by(TYPE, buffer, 1)
-
-#define blox_unshift(TYPE, buffer, value)                 \
-    do                                                    \
-    {                                                     \
-        size_t length = (buffer).length;                  \
-        blox_resize(TYPE, (buffer), length + 1);          \
-        TYPE *begin = blox_begin(TYPE, buffer);           \
-        memmove(begin + 1, begin, length * sizeof(TYPE)); \
-        blox_set(TYPE, (buffer), 0, value);               \
-    } while (0)
-
-#define blox_unshift_by(TYPE, buffer, amount)                  \
+/* resize length (grow capacity if needed; never shrinks capacity) */
+#define blox_resize(T, v, elems)                               \
     do                                                         \
     {                                                          \
-        size_t length = (buffer).length;                       \
-        blox_resize(TYPE, (buffer), length + amount);          \
-        TYPE *begin = blox_begin(TYPE, buffer);                \
-        memmove(begin + amount, begin, length * sizeof(TYPE)); \
-        blox_clear_at(TYPE, (buffer), 0, amount);              \
+        __blox_resize_elems(&(v), sizeof(T), (size_t)(elems)); \
     } while (0)
 
-#define blox_append(TYPE, buffer, other)                         \
-    do                                                           \
-    {                                                            \
-        size_t length = (buffer).length;                         \
-        size_t additional = (other).length;                      \
-        blox_resize(TYPE, (buffer), length + additional);        \
-        memcpy(blox_index(TYPE, (buffer), length), (other).data, \
-               additional * sizeof(TYPE));                       \
+/* lvalues / indexing */
+#define blox_index(T, v, i) ((T *)((uint8_t *)(v).data + (size_t)(i) * sizeof(T)))
+#define blox_get(T, v, i) (*((T *)((v).data) + (size_t)(i)))
+#define blox_back(T, v) (*((T *)((v).data) + ((v).length - 1)))
+
+/* push one element by value */
+#define blox_push(T, v, x)                                        \
+    do                                                            \
+    {                                                             \
+        size_t __w = sizeof(T);                                   \
+        size_t __old_len = (v).length;                            \
+        __blox_reserve_bytes(&(v), __w, (__old_len + 1) * __w);   \
+        memcpy((uint8_t *)(v).data + __old_len * __w, &(x), __w); \
+        (v).length = __old_len + 1;                               \
     } while (0)
 
-#define blox_append_sequence(TYPE, buffer, start, end) \
-    blox_append(TYPE, buffer, blox_use_sequence(TYPE, start, end))
-
-#define blox_append_array(TYPE, buffer, array, length) \
-    blox_append(TYPE, buffer, blox_use_array(TYPE, array, length))
-
-#define blox_append_string(TYPE, buffer, array) \
-    blox_append(TYPE, buffer, blox_use_string(TYPE, array))
-
-#define blox_splice(TYPE, buffer, index, other)                              \
-    do                                                                       \
-    {                                                                        \
-        size_t length = (buffer).length;                                     \
-        size_t additional = (other).length;                                  \
-        blox_resize(TYPE, (buffer), length + additional);                    \
-        TYPE *begin = blox_index(TYPE, buffer, index);                       \
-        memmove(begin + additional, begin, (length - index) * sizeof(TYPE)); \
-        memcpy(begin, (other).data, additional * sizeof(TYPE));              \
+/* push default-initialized element */
+#define blox_stuff(T, v)                  \
+    do                                    \
+    {                                     \
+        T __tmp;                          \
+        memset(&__tmp, 0, sizeof(__tmp)); \
+        blox_push(T, (v), __tmp);         \
     } while (0)
 
-#define blox_splice_sequence(TYPE, buffer, index, start, end) \
-    blox_splice(TYPE, buffer, index, blox_use_sequence(TYPE, start, end))
-
-#define blox_splice_array(TYPE, buffer, index, array, length) \
-    blox_splice(TYPE, buffer, index, blox_use_array(TYPE, array, length))
-
-#define blox_splice_string(TYPE, buffer, index, array) \
-    blox_splice(TYPE, buffer, index, blox_use_string(TYPE, array))
-
-#define blox_prepend(TYPE, buffer, other) blox_splice(TYPE, buffer, 0, other)
-
-#define blox_prepend_sequence(TYPE, buffer, start, end) \
-    blox_prepend(TYPE, buffer, blox_use_sequence(TYPE, start, end))
-
-#define blox_prepend_string(TYPE, buffer, array) \
-    blox_prepend(TYPE, buffer, blox_use_string(TYPE, array))
-
-#define blox_prepend_array(TYPE, buffer, array, length) \
-    blox_prepend_array(TYPE, buffer, blox_use_array(TYPE, array, length))
-
-#define blox_copy(TYPE, buffer, source)        \
-    do                                         \
-    {                                          \
-        blox_shrink(TYPE, buffer);             \
-        blox_append(TYPE, (buffer), (source)); \
+/* append raw bytes (used with T=uint8_t/char in your code) */
+#define blox_append_array(T, v, src_ptr, nbytes)                                         \
+    do                                                                                   \
+    {                                                                                    \
+        size_t __w = sizeof(T);                                                          \
+        size_t __old_bytes = (v).length * __w;                                           \
+        size_t __add_bytes = (size_t)(nbytes);                                           \
+        __blox_reserve_bytes(&(v), __w, __old_bytes + __add_bytes);                      \
+        memcpy((uint8_t *)(v).data + __old_bytes, (const void *)(src_ptr), __add_bytes); \
+        (v).length = ((__old_bytes + __add_bytes) / __w);                                \
     } while (0)
 
-#define blox_clone(TYPE, buffer) \
-    blox_clone_(sizeof(TYPE), (buffer).data, (buffer).length)
+/* append another blox of same T */
+#define blox_append(T, v, other) \
+    blox_append_array(T, (v), (other).data, (other).length * sizeof(T))
 
-#define blox_swap(buffer, other) \
-    do                           \
-    {                            \
-        blox stored = (buffer);  \
-        (buffer) = (other);      \
-        (other) = stored;        \
+/* pop-front one element (O(n) memmove) — used for the TX queue front pop */
+#define blox_shift(T, v)                                                             \
+    do                                                                               \
+    {                                                                                \
+        if ((v).length)                                                              \
+        {                                                                            \
+            memmove((T *)(v).data, (T *)(v).data + 1, ((v).length - 1) * sizeof(T)); \
+            (v).length--;                                                            \
+        }                                                                            \
     } while (0)
 
-#define blox_reverse(TYPE, buffer)             \
-    do                                         \
-    {                                          \
-        TYPE *left = blox_begin(TYPE, buffer); \
-        TYPE *right = blox_end(TYPE, buffer);  \
-        TYPE swap;                             \
-        while (left < --right)                 \
-        {                                      \
-            swap = *left;                      \
-            *left++ = *right;                  \
-            *right = swap;                     \
-        }                                      \
-    } while (0)
-
-#define blox_free(buffer)                     \
-    do                                        \
-    {                                         \
-        blox_realloc(NULL)((buffer).data, 0); \
-        blox_drop(buffer);                    \
-    } while (0)
-
-#define blox_offset(TYPE, buffer, pointer) \
-    blox__safe_subtract((TYPE *)pointer, (TYPE *)(buffer).data)
-
-#define blox_for_each(TYPE, buffer, action)                                       \
-    do                                                                            \
-    {                                                                             \
-        typedef void (*callback)(const void *, size_t);                           \
-        callback step = (callback)action;                                         \
-        for (size_t index = 0, length = (buffer).length; index < length; ++index) \
-            step(blox_index(TYPE, buffer, index), index);                         \
-    } while (0)
-
-#define blox_visit(TYPE, buffer, action, userdata)                                \
-    do                                                                            \
-    {                                                                             \
-        typedef void (*callback)(const void *, void *);                           \
-        callback step = (callback)action;                                         \
-        for (size_t index = 0, length = (buffer).length; index < length; ++index) \
-            step(blox_index(TYPE, buffer, index), userdata);                      \
-    } while (0)
-
-blox blox_make_(size_t width, size_t length, int reserved);
-
-blox blox_clone_(size_t width, const void *data, size_t length);
-
-blox blox_use_string_(size_t width, const void *data);
-
-typedef int (*blox_comparison)(const void *, const void *);
-
-#define blox_sort(TYPE, buffer, comparison)             \
-    qsort((buffer).data, (buffer).length, sizeof(TYPE), \
-          (blox_comparison)comparison)
-
-void *blox_find_(void *key,
-                 void *buffer,
-                 size_t length,
-                 size_t width,
-                 blox_comparison comparison);
-
-#define blox_find(TYPE, buffer, key, comparison)                            \
-    ((TYPE *)blox_find_(&key, (buffer).data, (buffer).length, sizeof(TYPE), \
-                        (blox_comparison)comparison))
-
-#define blox_search(TYPE, buffer, key, comparison)                       \
-    ((TYPE *)bsearch(&key, (buffer).data, (buffer).length, sizeof(TYPE), \
-                     (blox_comparison)comparison))
-
-/*
- FIXME: Not entirely rigorous
-*/
-int blox_compare_(void *lhs, size_t lmx, void *rhs, size_t rmx, size_t width);
-
-#define blox_compare(TYPE, lbx, rbx)                                  \
-    blox_compare_((lbx).data, (lbx).length, (rbx).data, (rbx).length, \
-                  sizeof(TYPE))
-
-#define blox_equal(TYPE, lbx, rbx) (blox_compare(TYPE, lbx, rbx) == 0)
-
-#define blox_less(TYPE, lbx, rbx) (blox_compare(TYPE, lbx, rbx) < 0)
-
-#define blox_less_or_equal(TYPE, lbx, rbx) (blox_compare(TYPE, lbx, rbx) <= 0)
-
-#define blox_greater(TYPE, lbx, rbx) (blox_compare(TYPE, lbx, rbx) > 0)
-
-#define blox_greater_or_equal(TYPE, lbx, rbx) \
-    (blox_compare(TYPE, lbx, rbx) >= 0)
-
-#endif // BLOX_H_INCLUDED
+#endif /* BLOX_H */
