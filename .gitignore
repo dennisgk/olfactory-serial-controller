@@ -1,4 +1,5 @@
 __pycache__/
+.vscode/
 
 /esp-olfactory-serial-controller/build/
 /py-olfactory-serial-controller/build/
