@@ -110,8 +110,8 @@ class PyOlfactoryBleController:
 
         self._on_quit = lambda: None
         
-        self.stdout_tee = Tee(sys.__stdout__, name="stdout", line_mode=True)
-        self.stderr_tee = Tee(sys.__stderr__, name="stderr", line_mode=True)
+        self.stdout_tee = Tee(name="stdout", line_mode=True)
+        self.stderr_tee = Tee(name="stderr", line_mode=True)
 
         sys.stdout = self.stdout_tee
         sys.stderr = self.stderr_tee
