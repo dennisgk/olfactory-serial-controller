@@ -262,35 +262,19 @@ class CsvProgConv():
         if len(data) == 0:
             return
         
-        if len(data) == 4 + 4 + serial_dev.ol_num_relay_ports:
-            self._catch_update_deob(
-                int.from_bytes(data[0:4], "little"),
-                int.from_bytes(data[4:8], "little"),
-                [data[8+y] == serial_dev.ol_relay_activate for y in range(0, serial_dev.ol_num_relay_ports)],
-                None,
-                None,
-                None
-            )
-        
-        if len(data) == 4 + 4 + serial_dev.ol_num_relay_ports + 4 + 4 + 8:
-            self._catch_update_deob(
-                int.from_bytes(data[0:4], "little"),
-                int.from_bytes(data[4:8], "little"),
-                [data[8+y] == serial_dev.ol_relay_activate for y in range(0, serial_dev.ol_num_relay_ports)],
-                int.from_bytes(data[(8+serial_dev.ol_num_relay_ports):(12+serial_dev.ol_num_relay_ports)], "little"),
-                int.from_bytes(data[(12+serial_dev.ol_num_relay_ports):(16+serial_dev.ol_num_relay_ports)], "little"),
-                int.from_bytes(data[(16+serial_dev.ol_num_relay_ports):(24+serial_dev.ol_num_relay_ports)], "little"),
-            )
-        
-        if len(data) == 4 + 4 + 8:
-            self._catch_update_deob(
-                None,
-                None,
-                None,
-                int.from_bytes(data[0:4], "little"),
-                int.from_bytes(data[4:8], "little"),
-                int.from_bytes(data[8:16], "little"),
-            )
+        first_out_len = int.from_bytes(data[-8:-4], "little")
+        sec_out_len = int.from_bytes(data[-4:], "little")
+
+        catch_args = [
+            None if first_out_len == 0 else int.from_bytes(data[0:4], "little"),
+            None if first_out_len == 0 else int.from_bytes(data[4:8], "little"),
+            None if first_out_len == 0 else [data[8+y] == serial_dev.ol_relay_activate for y in range(0, serial_dev.ol_num_relay_ports)],
+            None if sec_out_len == 0 else int.from_bytes(data[first_out_len:4+first_out_len], "little"),
+            None if sec_out_len == 0 else int.from_bytes(data[4+first_out_len:8+first_out_len], "little"),
+            None if sec_out_len == 0 else int.from_bytes(data[8+first_out_len:16+first_out_len], "little"),
+        ]
+
+        self._catch_update_deob(*catch_args)
 
 def parse_csv_time_ms(time_str):
     time_val_re = re.findall(r"(\d*\.?\d*)(MS|S)", time_str)[0]

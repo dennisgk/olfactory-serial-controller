@@ -222,6 +222,9 @@ void ol_command_get_csv_cur_stat_handler(blox event_blox)
         last_row = blox_get(struct OlRelayCsvIterationChoice, ol_app_state.csv_table.choices, ol_app_state.csv_table.choices.length - 2).row_choices.length - 1;
     }
 
+    uint32_t f_out_len = 0;
+    uint32_t s_out_len = 0;
+
     blox resp_data = blox_create(uint8_t);
     blox_append_array(uint8_t, resp_data, &now_it, sizeof(uint32_t));
     blox_append_array(uint8_t, resp_data, &now_row, sizeof(uint32_t));
@@ -233,10 +236,12 @@ void ol_command_get_csv_cur_stat_handler(blox event_blox)
     if (is_last_two_done == OL_FALSE)
     {
         blox_append_array(uint8_t, resp_data, choice.relay_comms, sizeof(ol_msg_property_t) * OL_NUM_RELAY_PORTS);
+        f_out_len = sizeof(uint32_t) + sizeof(uint32_t) + (sizeof(ol_msg_property_t) * OL_NUM_RELAY_PORTS);
     }
     else
     {
         blox_append_array(uint8_t, resp_data, &choice.actual_time_millis, sizeof(int64_t));
+        s_out_len = sizeof(uint32_t) + sizeof(uint32_t) + sizeof(int64_t);
     }
 
     if (is_last_two_done == OL_FALSE && (last_it != now_it || last_row != now_row))
@@ -246,7 +251,12 @@ void ol_command_get_csv_cur_stat_handler(blox event_blox)
         blox_append_array(uint8_t, resp_data, &last_row, sizeof(uint32_t));
 
         blox_append_array(uint8_t, resp_data, &choice.actual_time_millis, sizeof(int64_t));
+
+        s_out_len = sizeof(uint32_t) + sizeof(uint32_t) + sizeof(int64_t);
     }
+
+    blox_append_array(uint8_t, resp_data, &f_out_len, sizeof(uint32_t));
+    blox_append_array(uint8_t, resp_data, &s_out_len, sizeof(uint32_t));
 
     olfactory_serial_post(OL_COMMAND_GET_CSV_CUR_STAT, resp_data);
 
