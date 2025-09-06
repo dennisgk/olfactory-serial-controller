@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>540</width>
-    <height>320</height>
+    <width>578</width>
+    <height>372</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -205,6 +205,22 @@
         </property>
         <property name="text">
          <string>Show CSV</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="show_output_button">
+        <property name="minimumSize">
+         <size>
+          <width>231</width>
+          <height>41</height>
+         </size>
+        </property>
+        <property name="focusPolicy">
+         <enum>Qt::NoFocus</enum>
+        </property>
+        <property name="text">
+         <string>Show Output</string>
         </property>
        </widget>
       </item>

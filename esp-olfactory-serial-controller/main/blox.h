@@ -8,6 +8,8 @@
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdarg.h>
+#include <stdio.h>
 
 /* Public type (unchanged) */
 typedef struct blox
@@ -179,5 +181,53 @@ static inline blox blox_clone_(size_t width, const void *data, size_t length)
             (v).length--;                                                            \
         }                                                                            \
     } while (0)
+
+/* Internal: format into a new blox; include_nul => length counts the '\0' */
+static inline blox __blox_vfrom_fmt(const char *fmt, int include_nul, va_list ap)
+{
+    blox b = blox_nil();
+    if (!fmt)
+        return b;
+
+    va_list ap2;
+    va_copy(ap2, ap);
+
+    /* Query required size (excluding '\0') */
+    int n = vsnprintf(NULL, 0, fmt, ap2);
+    va_end(ap2);
+    if (n < 0)
+        return b;
+
+    size_t need_chars = (size_t)n;     /* chars excluding '\0' */
+    size_t buf_chars = need_chars + 1; /* include space for '\0' */
+
+    /* Allocate buffer (char-width) and leave length to set later */
+    __blox_reserve_bytes(&b, sizeof(char), buf_chars * sizeof(char));
+
+    /* Do the actual format write */
+    va_list ap3;
+    va_copy(ap3, ap);
+    int n2 = vsnprintf((char *)b.data, buf_chars, fmt, ap3);
+    va_end(ap3);
+    if (n2 < 0)
+    {
+        blox_free(b);
+        return blox_nil();
+    }
+
+    /* Set logical length (with/without NUL) */
+    __blox_resize_elems(&b, sizeof(char), include_nul ? (size_t)n2 + 1 : (size_t)n2);
+    return b;
+}
+
+/* Public: exclude trailing '\0' from length */
+static inline blox blox_from_fmt(const char *fmt, ...)
+{
+    va_list ap;
+    va_start(ap, fmt);
+    blox b = __blox_vfrom_fmt(fmt, /*include_nul=*/0, ap);
+    va_end(ap);
+    return b;
+}
 
 #endif /* BLOX_H */

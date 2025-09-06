@@ -5,8 +5,18 @@
 gpio_num_t ol_relay_port_nums[OL_NUM_RELAY_PORTS] = {GPIO_NUM_32, GPIO_NUM_33, GPIO_NUM_25, GPIO_NUM_26, GPIO_NUM_27};
 struct OlAppState ol_app_state = {0};
 
+#define OL_ECHO(...)                                         \
+    do                                                       \
+    {                                                        \
+        blox __tmp_output_blox = blox_from_fmt(__VA_ARGS__); \
+        ol_command_echo_handler(__tmp_output_blox);          \
+        blox_free(__tmp_output_blox);                        \
+    } while (0)
+
 void ol_csv_run_task(void *pv)
 {
+    OL_ECHO("Started CSV run task\n");
+
     ol_app_state.csv_active = OL_CSV_ACTIVE_STARTED;
 
     uint32_t num_runs_taken = 0;
@@ -26,6 +36,20 @@ void ol_csv_run_task(void *pv)
 
         for (size_t i = 0; i < ol_app_state.csv_table.rows.length; i++)
         {
+            OL_ECHO("Running CSV Iteration (%d/", num_runs_taken + 1);
+
+            if (ol_app_state.csv_table.run_adj == OL_CSV_RUN_NUMBER)
+            {
+                OL_ECHO("%d", ol_app_state.csv_table.run_num);
+            }
+
+            if (ol_app_state.csv_table.run_adj == OL_CSV_RUN_PERPETUAL)
+            {
+                OL_ECHO("Infinity");
+            }
+
+            OL_ECHO(") Row (%d/%d)\n", i + 1, ol_app_state.csv_table.rows.length);
+
             blox_stuff(struct OlRelayCsvIterationRowChoice, blox_back(struct OlRelayCsvIterationChoice, ol_app_state.csv_table.choices).row_choices);
 
 #define LATEST_ROW blox_back(struct OlRelayCsvIterationRowChoice, blox_back(struct OlRelayCsvIterationChoice, ol_app_state.csv_table.choices).row_choices)
@@ -144,16 +168,20 @@ void ol_csv_run_task(void *pv)
 
 void ol_command_get_relays_handler(blox event_blox)
 {
+    OL_ECHO("Queried relays\n");
     olfactory_serial_post(OL_COMMAND_GET_RELAYS, blox_use_array(uint8_t, ol_app_state.relays, sizeof(ol_msg_property_t) * OL_NUM_RELAY_PORTS));
 }
 
 void ol_command_get_csv_active_handler(blox event_blox)
 {
+    OL_ECHO("Queried CSV activity status\n");
     olfactory_serial_post(OL_COMMAND_GET_CSV_ACTIVE, blox_use_array(uint8_t, &ol_app_state.csv_active, sizeof(ol_csv_active_state_t)));
 }
 
 void ol_command_get_csv_prog_handler(blox event_blox)
 {
+    OL_ECHO("Queried CSV progress\n");
+
     if (ol_app_state.csv_active == OL_CSV_ACTIVE_STOPPED)
     {
         olfactory_serial_post(OL_COMMAND_GET_CSV_PROG, blox_nil());
@@ -194,6 +222,8 @@ void ol_command_get_csv_prog_handler(blox event_blox)
 
 void ol_command_get_csv_cur_stat_handler(blox event_blox)
 {
+    OL_ECHO("Queried CSV current status\n");
+
     if (ol_app_state.csv_active == OL_CSV_ACTIVE_STOPPED)
     {
         olfactory_serial_post(OL_COMMAND_GET_CSV_CUR_STAT, blox_nil());
@@ -265,6 +295,8 @@ void ol_command_get_csv_cur_stat_handler(blox event_blox)
 
 void ol_command_alter_handler(blox event_blox)
 {
+    OL_ECHO("Queried alter handler\n");
+
     if (event_blox.length != sizeof(ol_msg_property_t) * OL_NUM_RELAY_PORTS)
     {
         return;
@@ -294,6 +326,8 @@ void ol_command_alter_handler(blox event_blox)
 
 void ol_command_csv_start_handler(blox event_blox)
 {
+    OL_ECHO("Queried CSV start\n");
+
     if (ol_app_state.csv_active != OL_CSV_ACTIVE_STOPPED)
     {
         return;
@@ -366,6 +400,8 @@ void ol_command_csv_start_handler(blox event_blox)
 
 void ol_command_csv_pause_handler(blox event_blox)
 {
+    OL_ECHO("Queried CSV pause\n");
+
     if (ol_app_state.csv_active == OL_CSV_ACTIVE_STOPPED)
     {
         return;
@@ -376,6 +412,8 @@ void ol_command_csv_pause_handler(blox event_blox)
 
 void ol_command_csv_stop_handler(blox event_blox)
 {
+    OL_ECHO("Queried CSV stop\n");
+
     if (ol_app_state.csv_active == OL_CSV_ACTIVE_STOPPED)
     {
         return;
@@ -406,3 +444,5 @@ void olfactory_loop_init()
         gpio_set_level(ol_relay_port_nums[i], 0);
     }
 }
+
+#undef OL_ECHO

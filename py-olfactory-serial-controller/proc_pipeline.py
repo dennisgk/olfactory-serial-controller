@@ -55,7 +55,7 @@ def serial_dev_load_pipeline(controller, port):
             controller._background_loop.set(ControllerEvent(fail_launch))
             return
         
-        ol.add_handler(serial_dev.ol_command_echo, lambda text: print(text))
+        ol.add_handler(serial_dev.ol_command_echo, lambda text: print(text, end=""))
 
         def on_command_get_relays(relays):
             ol.remove_handler(serial_dev.ol_command_get_relays, on_command_get_relays)
@@ -99,7 +99,7 @@ def serial_dev_load_pipeline(controller, port):
 def serial_dev_main_pipeline(controller, ol, relays, csv_active, csv_cur_file):
     main_window = controller._launch_main()
 
-    ol.post_command_echo("Hello World!")
+    ol.post_command_echo("Hello World!\n")
 
     for i in range(0, serial_dev.ol_num_relay_ports):
         main_window.view.add_relay(i, relays[i])
@@ -183,6 +183,9 @@ def serial_dev_main_pipeline(controller, ol, relays, csv_active, csv_cur_file):
 
         select_window.ui.select_button.clicked.connect(on_select)
     
+    def show_output():
+        output_window = controller._launch_output(main_window)
+
     main_window.ui.enable_button.clicked.connect(enable_relay)
     main_window.ui.disable_button.clicked.connect(disable_relay)
 
@@ -190,5 +193,6 @@ def serial_dev_main_pipeline(controller, ol, relays, csv_active, csv_cur_file):
     main_window.ui.pause_csv_button.clicked.connect(pause_csv)
     main_window.ui.stop_csv_button.clicked.connect(stop_csv)
     main_window.ui.show_csv_button.clicked.connect(show_csv)
+    main_window.ui.show_output_button.clicked.connect(show_output)
     
 

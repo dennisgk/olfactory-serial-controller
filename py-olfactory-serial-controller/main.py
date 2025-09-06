@@ -7,13 +7,16 @@ from window import Window
 from window.main_window import MainWindow
 from window.csv_select_window import CsvSelectWindow
 from window.csv_prog_window import CsvProgWindow
+from window.output_window import OutputWindow
 from ui.loader import Loader
 from ui.select import Select
 from ui.main import Main
 from ui.message import Message
 from ui.csv_select import CsvSelect
 from ui.csv_prog import CsvProg
+from ui.output import Output
 from proc_pipeline import start_program
+from tee import Tee
 
 class PyOlfactoryBleController:
     def _acct_window(self, window):
@@ -66,6 +69,13 @@ class PyOlfactoryBleController:
 
         return csv_prog_window
     
+    def _launch_output(self, parent, ):
+        output_window = OutputWindow(Output, parent, self.stdout_tee, self.stderr_tee)
+        # has parent so no acct
+        output_window.show()
+
+        return output_window
+    
     def quit(self):
         self._background_loop.quit()
         self._app.quit()
@@ -99,6 +109,12 @@ class PyOlfactoryBleController:
         self._background_worker.start()
 
         self._on_quit = lambda: None
+        
+        self.stdout_tee = Tee(sys.__stdout__, name="stdout", line_mode=True)
+        self.stderr_tee = Tee(sys.__stderr__, name="stderr", line_mode=True)
+
+        sys.stdout = self.stdout_tee
+        sys.stderr = self.stderr_tee
 
     def exec(self):
         ret_val = self._app.exec()

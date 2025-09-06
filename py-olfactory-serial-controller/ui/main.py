@@ -24,7 +24,7 @@ class Main(object):
     def setupUi(self, MainWindow):
         if not MainWindow.objectName():
             MainWindow.setObjectName(u"MainWindow")
-        MainWindow.resize(540, 320)
+        MainWindow.resize(578, 372)
         self.central_widget = QWidget(MainWindow)
         self.central_widget.setObjectName(u"central_widget")
         self.horizontalLayout = QHBoxLayout(self.central_widget)
@@ -126,6 +126,13 @@ class Main(object):
 
         self.actions_layout.addWidget(self.show_csv_button)
 
+        self.show_output_button = QPushButton(self.central_widget)
+        self.show_output_button.setObjectName(u"show_output_button")
+        self.show_output_button.setMinimumSize(QSize(231, 41))
+        self.show_output_button.setFocusPolicy(Qt.NoFocus)
+
+        self.actions_layout.addWidget(self.show_output_button)
+
         self.actions_layout_stretch = QSpacerItem(20, 40, QSizePolicy.Policy.Minimum, QSizePolicy.Policy.Expanding)
 
         self.actions_layout.addItem(self.actions_layout_stretch)
@@ -151,5 +158,6 @@ class Main(object):
         self.stop_csv_button.setText(QCoreApplication.translate("MainWindow", u"Stop CSV", None))
         self.running_csv_checkbox.setText(QCoreApplication.translate("MainWindow", u"Running CSV", None))
         self.show_csv_button.setText(QCoreApplication.translate("MainWindow", u"Show CSV", None))
+        self.show_output_button.setText(QCoreApplication.translate("MainWindow", u"Show Output", None))
     # retranslateUi
 
